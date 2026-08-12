@@ -4,6 +4,9 @@ on:
   issues:
     types: [opened]
 
+jobs:
+  triage:
+    runs-on: ubuntu-latest
     permissions:
       # The OpenCode GitHub App token is obtained through this OIDC identity.
       id-token: write
@@ -11,9 +14,6 @@ on:
       issues: write
       pull-requests: write
 
-jobs:
-  triage:
-    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         run: git clone --depth 1 "https://github.com/${{ github.repository }}.git" .
