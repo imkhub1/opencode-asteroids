@@ -100,7 +100,37 @@ function drawPhantomSkin(ctx, { color, accent, fill, lineWidth }) {
   ctx.stroke();
 }
 
-const SKIN_IDS = Object.freeze(['classic', 'nova', 'phantom']);
+function drawMegaSkin(ctx, { color, accent, fill, lineWidth }) {
+  ctx.strokeStyle = color;
+  ctx.fillStyle = fill;
+  ctx.beginPath();
+  ctx.moveTo(20, 0);
+  ctx.lineTo(10, -6);
+  ctx.lineTo(5, -12);
+  ctx.lineTo(-2, -8);
+  ctx.lineTo(-12, -10);
+  ctx.lineTo(-8, 0);
+  ctx.lineTo(-12, 10);
+  ctx.lineTo(-2, 8);
+  ctx.lineTo(5, 12);
+  ctx.lineTo(10, 6);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = lineWidth * 0.8;
+  ctx.beginPath();
+  ctx.moveTo(6, 0);
+  ctx.lineTo(-6, 0);
+  ctx.moveTo(8, -4);
+  ctx.lineTo(-2, -4);
+  ctx.moveTo(8, 4);
+  ctx.lineTo(-2, 4);
+  ctx.stroke();
+}
+
+const SKIN_IDS = Object.freeze(['classic', 'nova', 'phantom', 'mega']);
 const SKINS = Object.freeze({
   classic: {
     label: 'CLASICA',
@@ -108,6 +138,8 @@ const SKINS = Object.freeze({
     accent: '#fff',
     fill: 'transparent',
     draw: drawClassicSkin,
+    scale: 1,
+    pointMultiplier: 1,
   },
   nova: {
     label: 'NOVA',
@@ -115,6 +147,8 @@ const SKINS = Object.freeze({
     accent: '#d9ffff',
     fill: 'rgba(125,249,255,0.12)',
     draw: drawNovaSkin,
+    scale: 1,
+    pointMultiplier: 1,
   },
   phantom: {
     label: 'FANTASMA',
@@ -122,6 +156,17 @@ const SKINS = Object.freeze({
     accent: '#ffd1f0',
     fill: 'rgba(255,114,210,0.12)',
     draw: drawPhantomSkin,
+    scale: 1,
+    pointMultiplier: 1,
+  },
+  mega: {
+    label: 'MEGA',
+    color: '#a855f7',
+    accent: '#d8b4fe',
+    fill: 'rgba(168,85,247,0.12)',
+    draw: drawMegaSkin,
+    scale: 2,
+    pointMultiplier: 2,
   },
 });
 
@@ -153,11 +198,13 @@ function renderSkin(ctx, skinId, options = {}) {
   const color = options.speedBoost ? '#0ff' : skin.color;
   const accent = options.speedBoost ? '#d9ffff' : skin.accent;
   const fill = options.speedBoost ? 'rgba(0,255,255,0.18)' : skin.fill;
+  const scale = options.scale || skin.scale || 1;
 
   ctx.save();
   ctx.lineWidth = lineWidth;
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
+  ctx.scale(scale, scale);
   skin.draw(ctx, { color, accent, fill, lineWidth });
 
   if (options.thrusting && Math.random() > 0.35) {
@@ -347,6 +394,7 @@ class ShootingStar extends Asteroid {
 class Ship {
   constructor(skinId = DEFAULT_SKIN_ID) {
     this.skinId = SKINS[skinId] ? skinId : DEFAULT_SKIN_ID;
+    this.pointMultiplier = SKINS[this.skinId].pointMultiplier;
     this.reset();
   }
 
@@ -356,7 +404,7 @@ class Ship {
     this.angle  = -Math.PI / 2;
     this.vx     = 0;
     this.vy     = 0;
-    this.radius = 12;
+    this.radius = 12 * (SKINS[this.skinId].scale || 1);
     this.thrusting     = false;
     this.invincible    = 3;
     this.shootCooldown = 0;
@@ -423,7 +471,7 @@ class Ship {
       ctx.strokeStyle = '#c084fc';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(0, 0, 26, 0, Math.PI * 2);
+      ctx.arc(0, 0, 26 * (SKINS[this.skinId].scale || 1), 0, Math.PI * 2);
       ctx.stroke();
     }
 
@@ -671,7 +719,7 @@ function update(dt) {
       if (!a.dead && !b.dead && dist(b, a) < a.radius) {
         b.dead = true;
         a.dead = true;
-        score += a.points;
+        score += a.points * ship.pointMultiplier;
         explode(a.x, a.y, a.size * 5);
         newAsteroids.push(...a.split());
         // Solo puede aparecer un power-up por ronda.
@@ -785,6 +833,13 @@ function drawHUD() {
 
   ctx.textAlign = 'left';
   ctx.fillText(`SCORE  ${score}`, 14, 26);
+
+  if (ship.pointMultiplier > 1) {
+    ctx.fillStyle = '#a855f7';
+    ctx.font = 'bold 11px monospace';
+    ctx.fillText(`x${ship.pointMultiplier}`, 14, 40);
+    ctx.fillStyle = '#fff';
+  }
 
   ctx.textAlign = 'center';
   ctx.fillText(`NIVEL ${level}`, W / 2, 26);
