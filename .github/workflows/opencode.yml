@@ -14,33 +14,19 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
+      # OpenCode exchanges this OIDC identity for its GitHub App token.
+      id-token: write
       contents: write
       issues: write
       pull-requests: write
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-
-      - name: Configure Git identity
-        run: |
-          git config --global user.name "${{ github.actor }}"
-          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
-
-      - name: Configure GitHub authentication
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          credentials=$(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 -w 0)
-          git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic $credentials"
+        run: git clone --depth 1 "https://github.com/${{ github.repository }}.git" .
 
       - name: Run OpenCode with Zen
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           model: opencode/mimo-v2.5-free
-          use_github_token: true

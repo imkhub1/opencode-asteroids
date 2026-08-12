@@ -22,6 +22,28 @@ npx serve .
 
 Luego visita `http://localhost:3000`.
 
+## Automatización de issues
+
+El workflow `Triage new issues` usa OpenCode para clasificar automáticamente los
+issues nuevos, añadir labels de tipo y prioridad, y agregar información para su
+revisión sin modificar el texto original.
+
+Para habilitarlo en GitHub:
+
+1. Instala la GitHub App de OpenCode en este repositorio desde
+   <https://github.com/apps/opencode-agent>.
+2. Concede a la App estos permisos del repositorio:
+   - **Issues: Read and write** para actualizar el cuerpo del issue y administrar labels.
+   - **Contents: Read** para leer el repositorio durante la ejecución.
+   - **Pull requests: Read and write** para que el workflow de comentarios pueda trabajar con PRs.
+3. En `Settings > Secrets and variables > Actions`, crea el secreto
+   `OPENCODE_API_KEY`.
+4. En `Settings > Actions > General`, permite ejecutar GitHub Actions y verifica
+   que las acciones de terceros estén habilitadas.
+
+Los workflows usan OIDC (`id-token: write`) y el token de instalación de la App;
+no requieren configurar ni exponer `GITHUB_TOKEN`.
+
 ## Controles
 
 | Tecla     | Acción     |

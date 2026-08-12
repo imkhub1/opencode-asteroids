@@ -1,0 +1,50 @@
+name: Triage new issues
+
+on:
+  issues:
+    types: [opened]
+
+    permissions:
+      # The OpenCode GitHub App token is obtained through this OIDC identity.
+      id-token: write
+      contents: write
+      issues: write
+      pull-requests: write
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        run: git clone --depth 1 "https://github.com/${{ github.repository }}.git" .
+
+      - name: Classify and annotate issue
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+        with:
+          model: opencode/mimo-v2.5-free
+          prompt: |
+            Triage the newly opened issue using only deterministic keyword rules.
+
+            Required behavior:
+            - Preserve the issue title and the complete original body exactly as written.
+            - Never rewrite, translate, normalize, summarize, or remove the original body.
+            - Add exactly one type label: bug, feature, documentation, or question.
+            - Add exactly one priority label: priority:high, priority:medium, or priority:low.
+            - Use bug for bug, error, fallo, falla, problema, crash, roto, no funciona, or broken.
+            - Use feature for feature, mejora, agregar, añadir, nuevo, solicitud, sugerencia, or request.
+            - Use documentation for documentación, documentacion, docs, readme, or typo.
+            - Use question for pregunta, duda, cómo, como, ayuda, question, or a question mark.
+            - If multiple types match, choose the type with the most matching terms; break ties in this order: bug, feature, documentation, question.
+            - If no type matches, use question.
+            - Use priority:high for urgent, urgente, critical, critico, crítico, bloquea, blocker, production, or producción.
+            - Use priority:low for low, baja, bajo, cosmetic, cosmético, cosmetico, minor, or menor.
+            - Otherwise use priority:medium.
+            - Create labels if they do not exist, then apply them to the issue.
+            - Append a section titled "Información para revisión" after the original body, separated by `---`.
+            - Include detected type, suggested priority, and this checklist:
+              - [ ] Confirmar pasos para reproducir o validar la solicitud.
+              - [ ] Verificar el comportamiento esperado y el comportamiento actual.
+              - [ ] Definir el alcance y los criterios de aceptación.
+            - Add the marker `<!-- automated-issue-review -->` and do not append anything if that marker already exists.
