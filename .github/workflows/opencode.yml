@@ -29,6 +29,13 @@ jobs:
           git config --global user.name "${{ github.actor }}"
           git config --global user.email "${{ github.actor }}@users.noreply.github.com"
 
+      - name: Configure GitHub authentication
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          credentials=$(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 -w 0)
+          git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic $credentials"
+
       - name: Run OpenCode with Zen
         uses: anomalyco/opencode/github@latest
         env:
