@@ -30,6 +30,11 @@ Luego visita `http://localhost:3000`.
 | `↑`       | Propulsar  |
 | `Espacio` | Disparar   |
 
+Al cargar el juego aparece un selector de nave. Usa las flechas para cambiar
+entre `CLASICA`, `NOVA` y `FANTASMA`, y confirma con `Enter` o `Espacio`.
+La seleccion se guarda en el navegador y queda preseleccionada al volver a
+cargar la pagina.
+
 ## Puntuación
 
 | Asteroide | Puntos |
@@ -44,4 +49,6 @@ Luego visita `http://localhost:3000`.
 - 3 vidas con invencibilidad temporal al reaparecer (parpadeo)
 - Asteroides se parten en fragmentos más pequeños al ser destruidos
 - Partículas de explosión al destruir asteroides
+- Power-up de escudo que bloquea una colisión con un asteroide
+- Power-up de triple disparo temporal
 - Estrella fugaz en cada nivel: aparece tras un intervalo variable, se mueve rápido, desaparece tras unos segundos y no se fragmenta
