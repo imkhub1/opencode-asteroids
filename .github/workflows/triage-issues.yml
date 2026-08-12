@@ -8,46 +8,113 @@ jobs:
   triage:
     runs-on: ubuntu-latest
     permissions:
-      # The OpenCode GitHub App token is obtained through this OIDC identity.
-      id-token: write
-      contents: write
       issues: write
-      pull-requests: write
 
     steps:
-      - name: Checkout repository
-        run: git clone --depth 1 "https://github.com/${{ github.repository }}.git" .
-
       - name: Classify and annotate issue
-        uses: anomalyco/opencode/github@latest
-        env:
-          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
-          # Temporary workaround for anomalyco/opencode#37823.
-          GITHUB_TOKEN: ${{ github.token }}
+        uses: actions/github-script@v7
         with:
-          model: opencode/mimo-v2.5-free
-          use_github_token: true
-          prompt: |
-            Triage the newly opened issue using only deterministic keyword rules.
+          github-token: ${{ github.token }}
+          script: |
+            const issue = context.payload.issue;
+            const text = `${issue.title}\n${issue.body || ''}`.toLowerCase();
 
-            Required behavior:
-            - Preserve the issue title and the complete original body exactly as written.
-            - Never rewrite, translate, normalize, summarize, or remove the original body.
-            - Add exactly one type label: bug, feature, documentation, or question.
-            - Add exactly one priority label: priority:high, priority:medium, or priority:low.
-            - Use bug for bug, error, fallo, falla, problema, crash, roto, no funciona, or broken.
-            - Use feature for feature, mejora, agregar, añadir, nuevo, solicitud, sugerencia, or request.
-            - Use documentation for documentación, documentacion, docs, readme, or typo.
-            - Use question for pregunta, duda, cómo, como, ayuda, question, or a question mark.
-            - If multiple types match, choose the type with the most matching terms; break ties in this order: bug, feature, documentation, question.
-            - If no type matches, use question.
-            - Use priority:high for urgent, urgente, critical, critico, crítico, bloquea, blocker, production, or producción.
-            - Use priority:low for low, baja, bajo, cosmetic, cosmético, cosmetico, minor, or menor.
-            - Otherwise use priority:medium.
-            - Create labels if they do not exist, then apply them to the issue.
-            - Append a section titled "Información para revisión" after the original body, separated by `---`.
-            - Include detected type, suggested priority, and this checklist:
-              - [ ] Confirmar pasos para reproducir o validar la solicitud.
-              - [ ] Verificar el comportamiento esperado y el comportamiento actual.
-              - [ ] Definir el alcance y los criterios de aceptación.
-            - Add the marker `<!-- automated-issue-review -->` and do not append anything if that marker already exists.
+            const typeRules = [
+              {
+                label: 'bug',
+                terms: ['bug', 'error', 'fallo', 'falla', 'problema', 'crash', 'roto', 'no funciona', 'broken']
+              },
+              {
+                label: 'feature',
+                terms: ['feature', 'mejora', 'agregar', 'añadir', 'nuevo', 'solicitud', 'sugerencia', 'request']
+              },
+              {
+                label: 'documentation',
+                terms: ['documentación', 'documentacion', 'docs', 'readme', 'typo']
+              },
+              {
+                label: 'question',
+                terms: ['pregunta', 'duda', 'cómo', 'como', 'ayuda', 'question', '?']
+              }
+            ];
+
+            const matches = (terms) => terms.reduce(
+              (count, term) => count + (text.includes(term) ? 1 : 0),
+              0
+            );
+
+            const detectedType = typeRules
+              .map((rule, index) => ({ ...rule, score: matches(rule.terms), index }))
+              .sort((a, b) => b.score - a.score || a.index - b.index)[0];
+            const typeLabel = detectedType.score > 0 ? detectedType.label : 'question';
+
+            const priorityLabel = /\b(urgent|urgente|critical|critico|crítico|bloquea|blocker|production|producción)\b/.test(text)
+              ? 'priority:high'
+              : /\b(low|baja|bajo|cosmetic|cosmético|cosmetico|minor|menor)\b/.test(text)
+                ? 'priority:low'
+                : 'priority:medium';
+
+            const labelDefinitions = {
+              bug: { color: 'D73A4A', description: 'Algo no funciona correctamente' },
+              feature: { color: 'A2EEEF', description: 'Nueva funcionalidad o mejora' },
+              documentation: { color: '0075CA', description: 'Cambios en documentación' },
+              question: { color: 'D876E3', description: 'Pregunta o solicitud por aclarar' },
+              'priority:high': { color: 'B60205', description: 'Prioridad alta' },
+              'priority:medium': { color: 'FBCA04', description: 'Prioridad media' },
+              'priority:low': { color: '0E8A16', description: 'Prioridad baja' }
+            };
+
+            for (const name of [typeLabel, priorityLabel]) {
+              const definition = labelDefinitions[name];
+              try {
+                await github.rest.issues.createLabel({
+                  ...context.repo,
+                  name,
+                  color: definition.color,
+                  description: definition.description
+                });
+              } catch (error) {
+                if (error.status !== 422) throw error;
+              }
+            }
+
+            const managedLabels = new Set([
+              ...typeRules.map((rule) => rule.label),
+              'priority:high',
+              'priority:medium',
+              'priority:low'
+            ]);
+            const existingLabels = issue.labels
+              .map((label) => typeof label === 'string' ? label : label.name)
+              .filter((name) => name && !managedLabels.has(name));
+
+            await github.rest.issues.setLabels({
+              ...context.repo,
+              issue_number: issue.number,
+              labels: [...existingLabels, typeLabel, priorityLabel]
+            });
+
+            const marker = '<!-- automated-issue-review -->';
+            if ((issue.body || '').includes(marker)) return;
+
+            const annotation = [
+              '',
+              '---',
+              '## Información para revisión',
+              '',
+              `**Tipo detectado:** \`${typeLabel}\``,
+              `**Prioridad sugerida:** \`${priorityLabel}\``,
+              '',
+              '### Checklist',
+              '- [ ] Confirmar pasos para reproducir o validar la solicitud.',
+              '- [ ] Verificar el comportamiento esperado y el comportamiento actual.',
+              '- [ ] Definir el alcance y los criterios de aceptación.',
+              '',
+              marker
+            ].join('\n');
+
+            await github.rest.issues.update({
+              ...context.repo,
+              issue_number: issue.number,
+              body: `${issue.body || ''}${annotation}`
+            });

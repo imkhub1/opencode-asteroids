@@ -24,9 +24,9 @@ Luego visita `http://localhost:3000`.
 
 ## Automatización de issues
 
-El workflow `Triage new issues` usa OpenCode para clasificar automáticamente los
-issues nuevos, añadir labels de tipo y prioridad, y agregar información para su
-revisión sin modificar el texto original.
+El workflow `Triage new issues` usa reglas deterministas para clasificar
+automáticamente los issues nuevos, añadir labels de tipo y prioridad, y agregar
+información para su revisión sin modificar el texto original.
 
 Para habilitarlo en GitHub:
 
@@ -41,9 +41,9 @@ Para habilitarlo en GitHub:
 4. En `Settings > Actions > General`, permite ejecutar GitHub Actions y verifica
    que las acciones de terceros estén habilitadas.
 
-Los workflows usan temporalmente el token efímero `${{ github.token }}` generado
-por cada ejecución. No requieren crear `secrets.GITHUB_TOKEN`, PATs ni guardar
-credenciales. Este workaround evita el bug de OIDC
+Los workflows usan el token efímero `${{ github.token }}` generado por cada
+ejecución. No requieren crear `secrets.GITHUB_TOKEN`, PATs ni guardar
+credenciales. En el workflow de OpenCode, esto evita temporalmente el bug de OIDC
 [anomalyco/opencode#37823](https://github.com/anomalyco/opencode/issues/37823)
 y se puede retirar cuando OpenCode despliegue la corrección.
 
