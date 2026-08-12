@@ -100,7 +100,37 @@ function drawPhantomSkin(ctx, { color, accent, fill, lineWidth }) {
   ctx.stroke();
 }
 
-const SKIN_IDS = Object.freeze(['classic', 'nova', 'phantom']);
+function drawGiantSkin(ctx, { color, accent, fill, lineWidth }) {
+  ctx.strokeStyle = color;
+  ctx.fillStyle = fill;
+  ctx.beginPath();
+  ctx.moveTo(24, 0);
+  ctx.lineTo(14, -8);
+  ctx.lineTo(8, -14);
+  ctx.lineTo(-4, -10);
+  ctx.lineTo(-14, -12);
+  ctx.lineTo(-10, 0);
+  ctx.lineTo(-14, 12);
+  ctx.lineTo(-4, 10);
+  ctx.lineTo(8, 14);
+  ctx.lineTo(14, 8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = lineWidth * 0.75;
+  ctx.beginPath();
+  ctx.moveTo(6, 0);
+  ctx.lineTo(-10, 0);
+  ctx.moveTo(8, -4);
+  ctx.lineTo(-2, -4);
+  ctx.moveTo(8, 4);
+  ctx.lineTo(-2, 4);
+  ctx.stroke();
+}
+
+const SKIN_IDS = Object.freeze(['classic', 'nova', 'phantom', 'giant']);
 const SKINS = Object.freeze({
   classic: {
     label: 'CLASICA',
@@ -122,6 +152,13 @@ const SKINS = Object.freeze({
     accent: '#ffd1f0',
     fill: 'rgba(255,114,210,0.12)',
     draw: drawPhantomSkin,
+  },
+  giant: {
+    label: 'GIGANTE',
+    color: '#a855f7',
+    accent: '#d8b4fe',
+    fill: 'rgba(168,85,247,0.15)',
+    draw: drawGiantSkin,
   },
 });
 
@@ -356,7 +393,7 @@ class Ship {
     this.angle  = -Math.PI / 2;
     this.vx     = 0;
     this.vy     = 0;
-    this.radius = 12;
+    this.radius = this.skinId === 'giant' ? 24 : 12;
     this.thrusting     = false;
     this.invincible    = 3;
     this.shootCooldown = 0;
@@ -368,6 +405,7 @@ class Ship {
 
   get speedBoost() { return this.speedTimer > 0; }
   get tripleShot() { return this.tripleShotTimer > 0; }
+  get scoreMultiplier() { return this.skinId === 'giant' ? 2 : 1; }
 
   update(dt) {
     if (this.dead) return;
@@ -671,7 +709,7 @@ function update(dt) {
       if (!a.dead && !b.dead && dist(b, a) < a.radius) {
         b.dead = true;
         a.dead = true;
-        score += a.points;
+        score += a.points * ship.scoreMultiplier;
         explode(a.x, a.y, a.size * 5);
         newAsteroids.push(...a.split());
         // Solo puede aparecer un power-up por ronda.
