@@ -22,8 +22,11 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          # Temporary workaround for anomalyco/opencode#37823.
+          GITHUB_TOKEN: ${{ github.token }}
         with:
           model: opencode/mimo-v2.5-free
+          use_github_token: true
           prompt: |
             Triage the newly opened issue using only deterministic keyword rules.
 

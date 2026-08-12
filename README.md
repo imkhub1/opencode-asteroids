@@ -41,8 +41,11 @@ Para habilitarlo en GitHub:
 4. En `Settings > Actions > General`, permite ejecutar GitHub Actions y verifica
    que las acciones de terceros estén habilitadas.
 
-Los workflows usan OIDC (`id-token: write`) y el token de instalación de la App;
-no requieren configurar ni exponer `GITHUB_TOKEN`.
+Los workflows usan temporalmente el token efímero `${{ github.token }}` generado
+por cada ejecución. No requieren crear `secrets.GITHUB_TOKEN`, PATs ni guardar
+credenciales. Este workaround evita el bug de OIDC
+[anomalyco/opencode#37823](https://github.com/anomalyco/opencode/issues/37823)
+y se puede retirar cuando OpenCode despliegue la corrección.
 
 ## Controles
 
