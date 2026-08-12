@@ -24,6 +24,11 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Configure Git identity
+        run: |
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+
       - name: Run OpenCode with Zen
         uses: anomalyco/opencode/github@latest
         env:
